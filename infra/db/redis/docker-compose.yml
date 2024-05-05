@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  redis:
+    container_name: my-redis-container
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PORT=6379
+      # - REDIS_DATABASES=16
+      # - REDIS_PASSWORD=my-password
+    # volumes:
+      # - /path/to/local/data:/root/redis
+      # - /path/to/local/redis.conf:/usr/local/etc/redis/redis.conf
