@@ -1,0 +1,117 @@
+Resources:
+  TESTS3001:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-tests3001-${AWS::AccountId}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: alias/aws/s3
+      PublicAccessBlockConfiguration:
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  TESTS3001BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref TESTS3001
+      PolicyDocument:
+        Id: RequireEncryptionInTransit
+        Version: '2012-10-17'
+        Statement:
+          - Principal: '*'
+            Action: '*'
+            Effect: Deny
+            Resource:
+              - !GetAtt TESTS3001.Arn
+              - !Sub ${TESTS3001.Arn}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+
+  TESTCFD001:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        DefaultCacheBehavior:
+          TargetOriginId: TESTS3001
+          ViewerProtocolPolicy: redirect-to-https
+          ForwardedValues:
+            Cookies:
+              Forward: none
+            QueryString: false
+        Enabled: true
+        Origins:
+          - DomainName: !GetAtt TESTS3001.RegionalDomainName
+            Id: TESTS3001
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${TESTCFD001OriginAccessIdentity}
+        Restrictions:
+          GeoRestriction:
+            Locations: 
+              - IN
+            RestrictionType: whitelist
+
+  TESTCFD001OriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Ref TESTS3001
+
+  TESTCFD001TESTS3001Policy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref TESTS3001
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              CanonicalUser: !GetAtt TESTCFD001OriginAccessIdentity.S3CanonicalUserId
+            Action: s3:GetObject
+            Resource: !Sub ${TESTS3001.Arn}/*
+            
+  TESTSG001:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH for User
+      GroupName: AllowSSH
+      VpcId: vpc-04aaa21271ac4b8ae
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          FromPort: 22
+          ToPort: 22
+          IpProtocol: tcp
+          
+  TESTSG002:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow VITE access for Web
+      GroupName: AllowVITE
+      VpcId: vpc-04aaa21271ac4b8ae
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          FromPort: 5173
+          ToPort: 5173
+          IpProtocol: tcp
+
+  TESTEC2001:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-04b70fa74e45c3917
+      SecurityGroupIds:
+        - !GetAtt TESTSG001.GroupId
+        - !GetAtt TESTSG002.GroupId
+      UserData: !Base64
+        Fn::Sub: |
+          #!/bin/bash
+          CLOUDFRONT_URL=${!GetAtt TESTCFD001.DomainName}
+          TEST=test
+          
+Outputs:
+  CloudFrontLink:
+    Description: CloudFront link associated with the EC2 instance
+    Value: !GetAtt TESTCFD001.DomainName
+    Export:
+      Name: !Sub ${AWS::StackName}-CloudFrontLink
