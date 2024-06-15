@@ -2,14 +2,19 @@ version: '3.8'
 
 services:
   redis:
-    container_name: my-redis-container
+    container_name: redis
     image: redis:latest
+    restart: always
     ports:
       - "6379:6379"
-    environment:
-      - REDIS_PORT=6379
-      # - REDIS_DATABASES=16
-      # - REDIS_PASSWORD=my-password
-    # volumes:
-      # - /path/to/local/data:/root/redis
-      # - /path/to/local/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server --save 20 1 --loglevel warning --requirepass supersecurepassword 
+    volumes:
+      - cache:/data
+  #redis-insight:
+  # container_name: redis-insight
+  # image: redis/redisinsight:latest
+  # ports:
+  #   - "5540:5540"
+volumes:
+  cache:
+    driver: local

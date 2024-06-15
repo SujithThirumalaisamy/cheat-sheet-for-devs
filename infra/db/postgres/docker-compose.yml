@@ -3,13 +3,14 @@ version: '3.8'
 services:
   postgres:
     image: postgres:latest
-    container_name: postgres-local
+    container_name: postgres
     environment:
       POSTGRES_PASSWORD: supersecurepassword
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    restart: always
 
 volumes:
   postgres_data:
