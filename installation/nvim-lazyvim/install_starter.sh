@@ -5,6 +5,7 @@ curl -LO https:/github.com/neovim/neovim/releases/latest/download/nvim-linux-x86
 sudo rm -rf /opt/nvim
 sudo mkdir -p /opt/nvim
 sudo tar -xzf nvim-linux-x86_64.tar.gz --strip-components=1 -C /opt/nvim
+rm nvim-linux-x86_64.tar.gz
 
 # Download other dependencies
 sudo apt update
