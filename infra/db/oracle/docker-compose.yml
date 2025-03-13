@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   oracle_database:
     image: container-registry.oracle.com/database/enterprise:latest
